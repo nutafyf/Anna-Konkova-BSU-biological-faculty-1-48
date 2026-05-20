@@ -1,0 +1,34 @@
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from sklearn.datasets import load_diabetes
+import pandas as pd
+
+# 1. Загрузка и подготовка данных
+diabetes = load_diabetes(scaled=False)
+df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
+df["target"] = diabetes.target
+
+# 2. Определение цветов (быстрый генератор списка вместо долгого цикла с append)
+colors = ["blue" if t < 100 else "green" if t <= 200 else "red" for t in df["target"]]
+
+# 3. Построение графика
+plt.figure(figsize=(10, 6))
+# Передаем колонки датафрейма напрямую, без создания промежуточных переменных
+plt.scatter(df["age"], df["bmi"], c=colors, alpha=0.7, edgecolors="black", s=50)
+
+plt.xlabel("Age", fontsize=12)
+plt.ylabel("BMI", fontsize=12)
+plt.title("Scatter Plot: Age vs BMI (Diabetes Dataset)", fontsize=14)
+
+# 4. Настройка легенды и внешнего вида
+legend_elements = [
+    Patch(facecolor="blue", edgecolor="black", label="target < 100"),
+    Patch(facecolor="green", edgecolor="black", label="100 ≤ target ≤ 200"),
+    Patch(facecolor="red", edgecolor="black", label="target > 200"),
+]
+
+plt.legend(handles=legend_elements)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+
+plt.show()
