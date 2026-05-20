@@ -1,0 +1,93 @@
+import time
+from Bio import Entrez, SeqIO
+from Bio.SeqUtils import gc_fraction
+
+Entrez.email = "tryhobbituwu@gmail.com"
+all_records = []
+
+# 1. Betula platyphylla - загрузка последовательностей
+print("\nBetula platyphylla - загрузка последовательностей...")
+search_query = "Betula platyphylla[Organism] AND chloroplast[Title]"
+
+try:
+    handle = Entrez.esearch(db="nucleotide", term=search_query, retmax=5, sort="relevance")
+    betula_ids = Entrez.read(handle)["IdList"]
+    handle.close()
+    
+    print(f"✓ Найдено записей: {len(betula_ids)}")
+    
+    for i, record_id in enumerate(betula_ids, 1):
+        try:
+            print(f"  Загрузка [{i}/{len(betula_ids)}] {record_id}...", end=" ")
+            time.sleep(0.3)
+            
+            handle = Entrez.efetch(db="nucleotide", id=record_id, rettype="gb", retmode="text")
+            record = SeqIO.read(handle, "genbank")
+            handle.close()
+            
+            record.annotations["species"] = "Betula platyphylla"
+            all_records.append(record)
+            
+            print(f"✓ {len(record.seq)} bp")
+            
+        except Exception as e:
+            print(f"✗ Ошибка: {e}")
+            continue
+            
+except Exception as e:
+    print(f"✗ Ошибка поиска Betula platyphylla: {e}")
+
+
+# 2. Candidatus Versatilivorator vitaminiformans - загрузка контигов
+print("\nCandidatus Versatilivorator vitaminiformans - загрузка контигов...")
+contig_ids = [
+    "JAPVWV010000001",
+    "JAPVWV010000002",
+    "JAPVWV010000003",
+    "JAPVWV010000004",
+    "JAPVWV010000005"
+]
+
+for contig_id in contig_ids:
+    try:
+        print(f"  Загрузка {contig_id}...", end=" ")
+        time.sleep(0.3)
+        
+        handle = Entrez.efetch(db="nucleotide", id=contig_id, rettype="gb", retmode="text")
+        record = SeqIO.read(handle, "genbank")
+        handle.close()
+
+        gc_content = gc_fraction(record.seq)
+        record.annotations["gc_content"] = gc_content
+        record.annotations["species"] = "Candidatus Versatilivorator vitaminiformans"
+        all_records.append(record)
+        
+        print(f"✓ {len(record.seq)} bp, GC={gc_content:.4f}")
+        
+    except Exception as e:
+        print(f"✗ Ошибка: {e}")
+        continue
+
+
+# 3. Сохранение всех записей в один файл GenBank
+print("\nСОХРАНЕНИЕ РЕЗУЛЬТАТОВ")
+output_file = "good_geans.gb"
+
+if all_records:
+    with open(output_file, "w") as output_handle:
+        count = SeqIO.write(all_records, output_handle, "genbank")
+        
+    print(f"✓ Сохранено {count} записей в файл: {output_file}")
+    
+    betula_count = sum(1 for r in all_records if r.annotations.get("species") == "Betula platyphylla")
+    versatil_count = sum(1 for r in all_records if r.annotations.get("species") == "Candidatus Versatilivorator vitaminiformans")
+
+    print("\n📋 Детали записей:")
+    for i, record in enumerate(all_records, 1):
+        species = record.annotations.get("species", "Unknown")
+        gc = gc_fraction(record.seq)
+        print(f"  {i}. {record.id}: {len(record.seq)} bp, GC={gc:.4f} [{species}]")
+        
+    print("Алилуя! Файл сохранён в формате GenBank (.gb)")
+else:
+    print("✗ Не удалось загрузить ни одной последовательности!")
